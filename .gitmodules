@@ -1,0 +1,12 @@
+[submodule "ai"]
+	path = ai
+	url = https://github.com/AnthonyS051105/smart-greenhouse-ai.git
+[submodule "iot"]
+	path = iot
+	url = https://github.com/AnthonyS051105/smart-greenhouse-iot.git
+[submodule "mobile"]
+	path = mobile
+	url = https://github.com/AnthonyS051105/smart-greenhouse-mobile.git
+[submodule "backend"]
+	path = backend
+	url = https://github.com/AnthonyS051105/smart-greenhouse-backend.git
