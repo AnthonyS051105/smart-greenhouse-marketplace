@@ -13,9 +13,10 @@
 │                                                                       │
 │  ┌──────────────────┐        ┌──────────────────┐                    │
 │  │  ESP32 (utama)   │        │   ESP32-CAM      │                    │
-│  │  DHT11, BME280,  │        │  (board terpisah)│                    │
-│  │  MQ(opsional),   │        │  Ambil citra     │                    │
-│  │  OLED, 2×Servo   │        │  tanaman berkala │                    │
+│  │  DHT11, Soil     │        │  (board terpisah)│                    │
+│  │  Moisture v1.2,  │        │  Ambil citra     │                    │
+│  │  BH1750, OLED,   │        │  tanaman berkala │                    │
+│  │  2×Servo         │        │                  │                    │
 │  └────────┬─────────┘        └────────┬─────────┘                    │
 └───────────┼───────────────────────────┼─────────────────────────────┘
             │ MQTT (sensor/command/status)│ HTTP POST multipart (citra)
@@ -85,6 +86,11 @@
 - **Keputusan:** 2 board — ESP32 utama (sensor+aktuator) & ESP32-CAM (citra).
 - **Alasan:** ESP32-CAM punya keterbatasan pin GPIO (banyak dipakai kamera); memisah menghindari konflik pin dengan sensor & servo.
 - **Konsekuensi:** 2 device_id berbeda; keduanya kirim ke broker/backend yang sama.
+
+### ADR-07: Perubahan set sensor lingkungan (revisi rencana)
+- **Keputusan:** Sensor lingkungan diganti dari (DHT11 + BME280 + MQ opsional) menjadi (DHT11 + Capacitive Soil Moisture Sensor v1.2 + BH1750). ESP32-CAM tetap dipertahankan tanpa perubahan.
+- **Alasan:** Kesepakatan tim — kelembapan tanah & intensitas cahaya dinilai lebih relevan langsung untuk kebutuhan irigasi tanaman cabai dibanding tekanan udara (BME280) & kadar gas (MQ), yang tidak terpakai signifikan di model regresi maupun narasi demo.
+- **Konsekuensi:** Field payload sensor berubah total (`pressure`/`gas_level` → `soil_moisture`/`light_intensity`, lihat `shared/data-contracts.md §1.1`). BH1750 memakai bus I2C yang sama dengan OLED (alamat berbeda); Soil Moisture Sensor v1.2 memakai pin analog (ADC) terpisah dari MQ sebelumnya. Model regresi irigasi AI perlu retrain dengan fitur baru (`soil_moisture`, `light_intensity` menggantikan `pressure`, tanpa `gas_level`).
 
 ### ADR-06: Mobile = Kotlin + Jetpack Compose
 - **Keputusan:** Kotlin dengan Jetpack Compose (declarative UI), bukan XML View tradisional.

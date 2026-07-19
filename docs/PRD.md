@@ -9,7 +9,7 @@
 ## 1. Ringkasan Produk
 
 **Smart Greenhouse + Marketplace** adalah sistem terintegrasi yang menggabungkan:
-1. **Monitoring & otomasi greenhouse berbasis IoT** — sensor lingkungan + kamera memantau kondisi tanaman, dan aktuator (servo) merespons secara otomatis (closed-loop).
+1. **Monitoring & otomasi greenhouse berbasis IoT** — sensor lingkungan (suhu, kelembapan udara, kelembapan tanah, intensitas cahaya) + kamera memantau kondisi tanaman, dan aktuator (servo) merespons secara otomatis (closed-loop).
 2. **Kecerdasan buatan (AI)** — dua model: (a) regresi kebutuhan irigasi dari data cuaca mikro, dan (b) computer vision untuk menilai kematangan/kesehatan tanaman dari citra.
 3. **Marketplace hasil panen** — petani menjual hasil panen langsung ke pembeli, dengan "skor kesehatan lahan" dari AI sebagai nilai jual transparansi produk.
 
@@ -62,7 +62,7 @@ Sistem otomatis yang menjaga kondisi greenhouse optimal, menilai kualitas panen 
 ## 5. Lingkup Produk (Scope)
 
 ### 5.1 Dalam Lingkup (In-Scope)
-- Monitoring sensor lingkungan (suhu, kelembapan, tekanan) real-time.
+- Monitoring sensor lingkungan (suhu, kelembapan udara, kelembapan tanah, intensitas cahaya) real-time.
 - Pengambilan citra tanaman berkala via ESP32-CAM.
 - Model AI regresi irigasi + model AI vision kematangan/kesehatan.
 - Aktuator servo otomatis (irigasi pinch-valve + ventilasi louver) + fallback lokal.
