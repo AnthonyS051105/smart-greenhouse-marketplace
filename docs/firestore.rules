@@ -1,0 +1,112 @@
+rules_version = '2';
+
+// Firestore Security Rules — project Firebase bersama "smart-greenhouse-marketplace".
+// Cakupan: akses dari CLIENT SDK (app Mobile) saja. Backend FastAPI menulis lewat Firebase
+// Admin SDK yang otomatis BYPASS seluruh rules ini (service account punya akses penuh) — jadi
+// koleksi yang "hanya dibaca" oleh rules ini (sensor_readings, irrigation_events, crop_images)
+// tetap bisa ditulis backend seperti biasa, rules di bawah hanya menutup jalur tulis LANGSUNG
+// dari app mobile untuk data-data tersebut.
+// Referensi skema & kepemilikan: docs/data-contracts.md §3, docs/Architecture.md §5.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // users/{uid} — profil Petani/Pembeli (data-contracts.md §3.1).
+    // Dibaca siapa saja yang login (perlu, mis. menampilkan nama penjual di chat/listing).
+    // Ditulis hanya oleh pemilik akun sendiri, dan role tidak bisa diubah setelah dibuat
+    // (role ditetapkan sekali saat register, lihat AuthRepository.register).
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(uid);
+      allow update: if isOwner(uid) && request.resource.data.role == resource.data.role;
+      allow delete: if false;
+    }
+
+    // farms/{farmId} — lahan milik petani (data-contracts.md §3.2).
+    // Dibaca siapa saja yang login (Peta Marketplace & Marketplace butuh baca farm milik petani
+    // lain). Ditulis hanya oleh owner_uid farm tersebut.
+    match /farms/{farmId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.owner_uid == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.owner_uid == request.auth.uid;
+    }
+
+    // plots/{plotId} — petak tanam (data-contracts.md §3.3), kepemilikan ikut farm induk.
+    match /plots/{plotId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() &&
+        get(/databases/$(database)/documents/farms/$(request.resource.data.farm_id)).data.owner_uid == request.auth.uid;
+      allow update, delete: if isSignedIn() &&
+        get(/databases/$(database)/documents/farms/$(resource.data.farm_id)).data.owner_uid == request.auth.uid;
+    }
+
+    // sensor_readings/irrigation_events/crop_images — HANYA ditulis backend (Admin SDK, bypass
+    // rules ini). Client mobile cuma baca (dashboard petani, grafik historis di Detail Listing
+    // Pembeli untuk transparansi kualitas per data-contracts.md §3.4/3.5/3.6).
+    match /sensor_readings/{readingId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+    match /irrigation_events/{eventId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+    match /crop_images/{imageId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // listings/{listingId} — produk dijual (data-contracts.md §3.7). Dibaca siapa saja yang
+    // login (Marketplace publik-internal). Ditulis hanya petani pemilik farm terkait.
+    match /listings/{listingId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() &&
+        get(/databases/$(database)/documents/farms/$(request.resource.data.farm_id)).data.owner_uid == request.auth.uid;
+      allow update, delete: if isSignedIn() &&
+        get(/databases/$(database)/documents/farms/$(resource.data.farm_id)).data.owner_uid == request.auth.uid;
+    }
+
+    // orders/{orderId} — pesanan (data-contracts.md §3.8). Dibuat & dibaca pembeli sendiri;
+    // juga dibaca/diupdate petani penjual listing terkait (konfirmasi/selesaikan pesanan).
+    match /orders/{orderId} {
+      function isBuyer() {
+        return isSignedIn() && resource.data.buyer_uid == request.auth.uid;
+      }
+      function isSellerOfListing(listingId) {
+        return isSignedIn() &&
+          get(/databases/$(database)/documents/farms/
+            $(get(/databases/$(database)/documents/listings/$(listingId)).data.farm_id)
+          ).data.owner_uid == request.auth.uid;
+      }
+      allow create: if isSignedIn() && request.resource.data.buyer_uid == request.auth.uid;
+      allow read, update: if isBuyer() || isSellerOfListing(resource.data.listing_id);
+      allow delete: if false;
+    }
+
+    // chat_messages/{messageId} — negosiasi (data-contracts.md §3.9). Hanya kedua pihak
+    // percakapan yang bisa baca; pengirim wajib diri sendiri; pesan tidak bisa diubah/dihapus.
+    match /chat_messages/{messageId} {
+      allow read: if isSignedIn() &&
+        (resource.data.sender_uid == request.auth.uid || resource.data.receiver_uid == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.sender_uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // reviews/{reviewId} — rating & ulasan (data-contracts.md §3.10). Dibaca siapa saja yang
+    // login (transparansi marketplace); dibuat hanya oleh pembeli pemilik order terkait;
+    // tidak bisa diubah/dihapus setelah dikirim.
+    match /reviews/{reviewId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() &&
+        get(/databases/$(database)/documents/orders/$(request.resource.data.order_id)).data.buyer_uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+  }
+}

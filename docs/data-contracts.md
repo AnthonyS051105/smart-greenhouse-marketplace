@@ -191,11 +191,15 @@ Seluruh koleksi bersifat **top-level** (bukan sub-collection) untuk kemudahan qu
   "health_score": 88.5,
   "harvest_date": "2026-07-12",
   "status": "available",
-  "created_at": "2026-07-12T10:00:00Z"
+  "created_at": "2026-07-12T10:00:00Z",
+  "description": "Cabai rawit merah segar, dipanen pagi ini.",
+  "pre_order_enabled": false
 }
 ```
 `status`: `available` | `sold`.
 `health_score`: 0–100 (dihitung backend dari hasil AI, lihat Bagian 4).
+`description` (string, opsional, default `""`): deskripsi bebas produk yang diisi petani di form Buat Listing. Field mobile-only — tidak dibaca/ditulis IoT maupun AI, ditambahkan 2026-07-19 atas permintaan Mobile Dev (form sudah ada duluan di `CreateListingModels.kt` sebelum field ini didokumentasikan di sini).
+`pre_order_enabled` (boolean, opsional, default `false`): penanda apakah listing menerima pre-order. Field mobile-only, alur pre-order itu sendiri belum didefinisikan di `SRS.md`/`UIUX-Flow.md` manapun — disimpan agar tidak hilang saat form disambungkan ke Firestore, tapi belum ada kebutuhan fungsional yang memakainya.
 
 ### 3.8 `orders`
 ```json
