@@ -18,8 +18,8 @@ Dikirim ESP32 setiap 5–10 menit.
   "timestamp": "2026-07-12T08:30:00Z",
   "temperature": 29.5,
   "humidity": 72.3,
-  "pressure": 1008.2,
-  "gas_level": 145
+  "soil_moisture": 45.0,
+  "light_intensity": 850.0
 }
 ```
 
@@ -27,10 +27,10 @@ Dikirim ESP32 setiap 5–10 menit.
 |-------|------|--------|-------|------------|
 | device_id | string | - | ✅ | ID unik perangkat ESP32 |
 | timestamp | string (ISO 8601 UTC) | - | ✅ | Waktu pembacaan |
-| temperature | float | °C | ✅ | Dari DHT11/BME280 |
-| humidity | float | % | ✅ | Kelembapan udara |
-| pressure | float | hPa | ✅ | Dari BME280 |
-| gas_level | int | ppm (relatif) | ❌ | Dari MQ (opsional) |
+| temperature | float | °C | ✅ | Dari DHT11 |
+| humidity | float | % | ✅ | Kelembapan udara, dari DHT11 |
+| soil_moisture | float | % (0–100) | ✅ | Kelembapan tanah, dari Capacitive Soil Moisture Sensor v1.2 (dipetakan dari nilai ADC mentah ke persentase saat kalibrasi) |
+| light_intensity | float | lux | ✅ | Intensitas cahaya, dari sensor BH1750 (I2C) |
 
 ### 1.2 Topik: `greenhouse/{device_id}/command` (Backend → IoT)
 Dikirim backend saat AI/logika memutuskan aktuasi.
@@ -145,8 +145,8 @@ Seluruh koleksi bersifat **top-level** (bukan sub-collection) untuk kemudahan qu
   "timestamp": "2026-07-12T08:30:00Z",
   "temperature": 29.5,
   "humidity": 72.3,
-  "pressure": 1008.2,
-  "gas_level": 145
+  "soil_moisture": 45.0,
+  "light_intensity": 850.0
 }
 ```
 
