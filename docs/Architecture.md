@@ -53,7 +53,7 @@
 │  │   APP PETANI       │        │    APP PEMBELI        │          │
 │  │  Monitoring,       │        │  Marketplace, Chat,   │          │
 │  │  Kontrol, Listing  │        │  Checkout, Rating,    │          │
-│  │                    │        │  Peta (Google Maps)   │          │
+│  │                    │        │  Peta (MapLibre)      │          │
 │  └────────────────────┘        └──────────────────────┘          │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -98,6 +98,16 @@
 - **Konsekuensi:** Perlu pemahaman paradigma declarative & recomposition. Navigasi memakai Navigation Compose (bukan Fragment). Beberapa library (mis. Google Maps) memakai varian Compose (`maps-compose`).
 - **Riwayat:** Keputusan awal adalah XML (mengikuti materi bootcamp); diubah setelah coaching mengonfirmasi Compose diperbolehkan.
 
+### ADR-08: Peta = MapLibre Compose + tile OpenFreeMap (bukan Google Maps SDK)
+- **Keputusan:** Peta di app Mobile (Peta Marketplace, Produk Lahan, Setup Greenhouse — pilih lokasi lahan) memakai **MapLibre Compose** (`org.maplibre.compose:maplibre-compose`, fork open-source Mapbox GL Native) dengan tile vector gratis dari **OpenFreeMap** (`https://tiles.openfreemap.org/styles/liberty`). Google Maps SDK (`maps-compose`/`play-services-maps`) & Places dihapus total dari project.
+- **Alasan:** Tim (Mobile Dev) memutuskan tidak ingin lagi bergantung pada Google Maps API (perlu API key & billing account Google Cloud, walau ada free tier). OpenFreeMap TIDAK butuh API key/pendaftaran akun sama sekali — hosting gratis-selamanya. MapLibre Compose dipilih (bukan osmdroid) karena Compose-native, selaras `ADR-06` & aturan "jangan library View-based" di `mobile/CLAUDE.md`.
+- **Konsekuensi:**
+  - Renderer MapLibre di-set ke varian **OpenGL** (bukan Vulkan default) untuk kompatibilitas emulator (Vulkan software/SwiftShader sering bermasalah, terutama host Windows) — lihat komentar `mobile/gradle/libs.versions.toml`.
+  - MapLibre Compose **belum punya marker/annotation Composable bawaan** (beda dari `MarkerComposable` milik `maps-compose` Google Maps) — app membangun overlay marker manual berbasis proyeksi kamera (`MapMarkerOverlay`, `ui/buyer/MapScreen.kt`) sebagai padanannya.
+  - Reverse geocoding / Places Autocomplete (pencarian alamat) belum diimplementasikan di kedua library (search bar peta masih placeholder UI, TODO lama sejak sebelum migrasi ini) — tidak berubah oleh keputusan ini.
+  - "Blue dot" lokasi pengguna bawaan (`MapProperties.isMyLocationEnabled` milik Google Maps) tidak direplikasi — app sudah punya tombol "Lokasi Saya" kustom yang cukup untuk kebutuhan re-center peta.
+  - Riwayat: menggantikan pilihan Google Maps SDK for Android + Places + Geocoding yang tercantum di `docs/PRD.md §8` sejak awal proyek.
+
 ---
 
 ## 3. Pembagian Jalur Komunikasi Mobile
@@ -109,7 +119,7 @@
 | Chat | Firestore SDK (realtime listener) | Realtime bawaan |
 | Notifikasi | FCM SDK | Standar Android |
 | Upload foto produk | Cloudinary SDK/upload | Object storage |
-| Peta & marker | Firestore query + Maps SDK | Data farm dari Firestore |
+| Peta & marker | Firestore query + MapLibre Compose (OpenFreeMap) | Data farm dari Firestore |
 | **Kontrol aktuator manual** | **REST API → FastAPI** | Hanya backend punya koneksi MQTT |
 | **Trigger inferensi AI** | **REST API → FastAPI** | Model di-load di backend |
 | **Ekspor CSV** | **REST API → FastAPI** | Perlu proses agregasi |
@@ -151,7 +161,7 @@ jalankan threshold lokal (mis. suhu>32°C → buka ventilasi) mandiri.
 | IoT | C++ (Arduino/ESP-IDF) | ESP32, ESP32-CAM, PubSubClient (MQTT), ESP32Servo |
 | AI | Python | scikit-learn (regresi), TensorFlow/Keras (vision), pandas, FastAPI (serving) |
 | Backend | Python | FastAPI, paho-mqtt, firebase-admin, cloudinary |
-| Mobile | Kotlin + Jetpack Compose | Retrofit, Firebase SDK, maps-compose, Coil, Navigation Compose |
+| Mobile | Kotlin + Jetpack Compose | Retrofit, Firebase SDK, MapLibre Compose (OpenFreeMap), Coil, Navigation Compose |
 | Dashboard | Node-RED | Flow-based, CSV export node |
 
 ---

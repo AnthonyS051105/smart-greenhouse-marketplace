@@ -67,7 +67,7 @@ Sistem otomatis yang menjaga kondisi greenhouse optimal, menilai kualitas panen 
 - Model AI regresi irigasi + model AI vision kematangan/kesehatan.
 - Aktuator servo otomatis (irigasi pinch-valve + ventilasi louver) + fallback lokal.
 - Aplikasi mobile petani (monitoring, kontrol, listing) & pembeli (marketplace, chat, checkout, rating).
-- Fitur peta lokasi lahan (Google Maps).
+- Fitur peta lokasi lahan (MapLibre + OpenFreeMap — bukan Google Maps, lihat `shared/Architecture.md` ADR-08).
 - Dashboard IoT (Node-RED) + ekspor CSV data sensor.
 
 ### 5.2 Luar Lingkup (Out-of-Scope, untuk versi bootcamp)
@@ -126,7 +126,7 @@ Pembeli melihat produk dengan transparansi kualitas → transaksi
 - **Konektivitas IoT:** **MQTT broker** (HiveMQ Cloud / Mosquitto).
 - **Dashboard IoT:** **Node-RED**.
 - **Mobile:** **Kotlin + Jetpack Compose**, Android.
-- **Peta:** **Google Maps SDK for Android** + Places + Geocoding.
+- **Peta:** **MapLibre Compose** + tile **OpenFreeMap** (gratis, tanpa API key) — bukan Google Maps, lihat `shared/Architecture.md` ADR-08.
 
 > Detail lengkap arsitektur ada di `shared/Architecture.md`.
 
