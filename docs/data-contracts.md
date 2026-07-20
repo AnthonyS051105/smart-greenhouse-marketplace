@@ -193,13 +193,17 @@ Seluruh koleksi bersifat **top-level** (bukan sub-collection) untuk kemudahan qu
   "status": "available",
   "created_at": "2026-07-12T10:00:00Z",
   "description": "Cabai rawit merah segar, dipanen pagi ini.",
-  "pre_order_enabled": false
+  "pre_order_enabled": false,
+  "product_name": "Cabai Rawit Merah",
+  "image_urls": ["https://res.cloudinary.com/.../listing1.jpg"]
 }
 ```
 `status`: `available` | `sold`.
 `health_score`: 0–100 (dihitung backend dari hasil AI, lihat Bagian 4).
 `description` (string, opsional, default `""`): deskripsi bebas produk yang diisi petani di form Buat Listing. Field mobile-only — tidak dibaca/ditulis IoT maupun AI, ditambahkan 2026-07-19 atas permintaan Mobile Dev (form sudah ada duluan di `CreateListingModels.kt` sebelum field ini didokumentasikan di sini).
 `pre_order_enabled` (boolean, opsional, default `false`): penanda apakah listing menerima pre-order. Field mobile-only, alur pre-order itu sendiri belum didefinisikan di `SRS.md`/`UIUX-Flow.md` manapun — disimpan agar tidak hilang saat form disambungkan ke Firestore, tapi belum ada kebutuhan fungsional yang memakainya.
+`product_name` (string, wajib): nama deskriptif produk (mis. "Cabai Rawit Merah") diisi otomatis dari hasil AI/scan di form Buat Listing. Field mobile-only, TIDAK menggantikan `crop_type` (tetap enum sederhana "cabai" dkk, dipakai lintas bidang IoT/AI/Backend) — ditambahkan 2026-07-19 dengan alasan sama seperti `description`.
+`image_urls` (array of string, opsional, default `[]`): URL hasil upload Cloudinary foto produk (lihat `CloudinaryRepository`), maksimal 3 foto per listing (dibatasi UI Buat Listing). Field mobile-only.
 
 ### 3.8 `orders`
 ```json
