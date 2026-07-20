@@ -15,6 +15,7 @@ Dikirim ESP32 setiap 5–10 menit.
 ```json
 {
   "device_id": "gh-esp32-01",
+  "plot_id": "plot-abc123",
   "timestamp": "2026-07-12T08:30:00Z",
   "temperature": 29.5,
   "humidity": 72.3,
@@ -26,10 +27,11 @@ Dikirim ESP32 setiap 5–10 menit.
 | Field | Tipe | Satuan | Wajib | Keterangan |
 |-------|------|--------|-------|------------|
 | device_id | string | - | ✅ | ID unik perangkat ESP32 |
+| plot_id | string | - | ✅ | ID plot terkait. Tidak ada di rencana MQTT awal (yang mengidentifikasi hanya via `device_id`), ditambahkan agar backend bisa menulis `sensor_readings` (§3.4, berelasi ke plot) langsung dari payload MQTT tanpa lookup `device_id`→`plot_id` terpisah. |
 | timestamp | string (ISO 8601 UTC) | - | ✅ | Waktu pembacaan |
 | temperature | float | °C | ✅ | Dari DHT11 |
 | humidity | float | % | ✅ | Kelembapan udara, dari DHT11 |
-| soil_moisture | float | % (0–100) | ✅ | Kelembapan tanah, dari Capacitive Soil Moisture Sensor v1.2 (dipetakan dari nilai ADC mentah ke persentase saat kalibrasi) |
+| soil_moisture | float | % (0–100) | ✅ | Kelembapan tanah, dari Capacitive Soil Moisture Sensor v1.2 (dipetakan dari nilai ADC mentah ke persentase saat kalibrasi). Backend juga menyimpan nilai ini sebagai `water_level` (alias, representasi fisik sama) karena model AI irigasi dilatih dengan nama fitur tersebut. |
 | light_intensity | float | lux | ✅ | Intensitas cahaya, dari sensor BH1750 (I2C) |
 
 ### 1.2 Topik: `greenhouse/{device_id}/command` (Backend → IoT)
@@ -274,10 +276,19 @@ Menerima data sensor (alternatif MQTT untuk device yang HTTP-only). Body = paylo
 Lihat Bagian 2.
 
 ### 4.3 `GET /plots/{plot_id}/irrigation/recommendation`
-Response:
+Tidak butuh auth. Model AI yang benar-benar dilatih (`ai/`) adalah **klasifikasi ON/OFF** per aktuator (bukan regresi durasi seperti rencana awal). Response mengikuti model aktual:
 ```json
-{ "recommended_duration_sec": 180, "confidence": 0.87 }
+{
+  "plot_id": "plot-abc123",
+  "based_on_reading_id": "abc123",
+  "recommendation": {
+    "Fan_actuator_status": "ON",
+    "Water_pump_actuator_status": "OFF"
+  },
+  "generated_at": "2026-07-20T10:00:00+07:00"
+}
 ```
+Fitur model diambil dari `sensor_readings` terbaru plot: `temperature`, `humidity`, `soil_moisture` (disimpan backend juga sebagai `water_level`, nama fitur asli model — representasi fisik sama), plus `hour`/`minute` waktu server (`Asia/Jakarta`). Detail lengkap: `backend/docs/API_DOCS.md`.
 
 ### 4.4 `POST /irrigation/trigger` (Mobile → Backend)
 Override manual. Body:
