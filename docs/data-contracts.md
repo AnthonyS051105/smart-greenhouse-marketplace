@@ -223,6 +223,7 @@ Seluruh koleksi bersifat **top-level** (bukan sub-collection) untuk kemudahan qu
 ```json
 {
   "id": "msg-...",
+  "thread_id": "listing-...:buyer-firebase-auth-uid",
   "sender_uid": "...",
   "receiver_uid": "...",
   "listing_id": "listing-...",
@@ -230,6 +231,16 @@ Seluruh koleksi bersifat **top-level** (bukan sub-collection) untuk kemudahan qu
   "sent_at": "2026-07-12T11:05:00Z"
 }
 ```
+`thread_id` (string, wajib, format `"<listing_id>:<buyer_uid>"`): field mobile-only tambahan
+(ditambahkan 2026-07-20 atas kebutuhan Mobile Dev — TIDAK dibaca/ditulis IoT/AI/Backend, koleksi
+`chat_messages` sepenuhnya jalur Mobile↔Firestore langsung per `Architecture.md §3`). Mengidentifikasi
+satu percakapan (satu listing + satu pembeli — penjual selalu tunggal, diturunkan dari
+`listings.farm_id`→`farms.owner_uid`, tidak perlu disertakan di id). Dihitung deterministik oleh
+app (`chatThreadId(listingId, buyerUid)`, lihat `mobile/.../util/ChatThreadId.kt`), disimpan di
+tiap dokumen supaya query "seluruh pesan satu percakapan" cukup satu filter equality — Firestore
+Security Rules `chat_messages` mensyaratkan query membuktikan filter eksplisit ke
+`sender_uid`/`receiver_uid` milik pengguna yang login, dan filter `listing_id`+lawan bicara saja
+tidak bisa dibuktikan aman tanpa composite index manual.
 
 ### 3.10 `reviews`
 ```json
