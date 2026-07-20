@@ -210,6 +210,7 @@ Seluruh koleksi bersifat **top-level** (bukan sub-collection) untuk kemudahan qu
 {
   "id": "order-...",
   "buyer_uid": "firebase-auth-uid",
+  "seller_uid": "firebase-auth-uid",
   "listing_id": "listing-...",
   "quantity_kg": 5.0,
   "total_price": 175000,
@@ -218,6 +219,13 @@ Seluruh koleksi bersifat **top-level** (bukan sub-collection) untuk kemudahan qu
 }
 ```
 `status`: `pending` | `confirmed` | `completed` | `cancelled`.
+`seller_uid` (string, wajib): field mobile-only tambahan (ditambahkan 2026-07-20 atas kebutuhan
+Mobile Dev — TIDAK dibaca/ditulis IoT/AI/Backend, koleksi `orders` sepenuhnya jalur Mobile↔Firestore
+langsung per `Architecture.md §3`, sama seperti alasan `chat_messages.thread_id` §3.9). Salinan
+`farms.owner_uid` pemilik `listing_id` terkait, diisi saat order dibuat (`CheckoutViewModel`).
+Tanpa field ini, query "seluruh pesanan masuk milik petani ini" tidak bisa dibuktikan aman oleh
+Firestore Security Rules tanpa `get()` lintas dokumen per hasil query (mahal & tidak provably-safe
+untuk operasi `list`) — dengan `seller_uid` tersimpan, query cukup satu filter equality.
 
 ### 3.9 `chat_messages`
 ```json

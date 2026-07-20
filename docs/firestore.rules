@@ -75,18 +75,24 @@ service cloud.firestore {
 
     // orders/{orderId} — pesanan (data-contracts.md §3.8). Dibuat & dibaca pembeli sendiri;
     // juga dibaca/diupdate petani penjual listing terkait (konfirmasi/selesaikan pesanan).
+    // Filter langsung ke seller_uid (bukan get() bersarang lewat listings→farms) sengaja dipakai
+    // supaya query "seluruh pesanan masuk milik petani ini" (FarmerOrdersViewModel, LIST bukan
+    // GET) bisa dibuktikan aman oleh Firestore tanpa cross-document get() per hasil query — lihat
+    // catatan field `seller_uid` di data-contracts.md §3.8.
     match /orders/{orderId} {
       function isBuyer() {
         return isSignedIn() && resource.data.buyer_uid == request.auth.uid;
       }
-      function isSellerOfListing(listingId) {
-        return isSignedIn() &&
-          get(/databases/$(database)/documents/farms/
-            $(get(/databases/$(database)/documents/listings/$(listingId)).data.farm_id)
-          ).data.owner_uid == request.auth.uid;
+      function isSeller() {
+        return isSignedIn() && resource.data.seller_uid == request.auth.uid;
       }
       allow create: if isSignedIn() && request.resource.data.buyer_uid == request.auth.uid;
-      allow read, update: if isBuyer() || isSellerOfListing(resource.data.listing_id);
+      allow read: if isBuyer() || isSeller();
+      // Update hanya boleh mengubah status (petani konfirmasi/selesaikan/tolak) — buyer_uid/
+      // seller_uid/listing_id/quantity_kg/total_price/created_at tidak boleh diubah siapa pun
+      // setelah dibuat, mencegah petani/pembeli memanipulasi nominal atau kepemilikan pesanan.
+      allow update: if (isBuyer() || isSeller()) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
       allow delete: if false;
     }
 
