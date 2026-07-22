@@ -3,9 +3,11 @@ rules_version = '2';
 // Firestore Security Rules — project Firebase bersama "smart-greenhouse-marketplace".
 // Cakupan: akses dari CLIENT SDK (app Mobile) saja. Backend FastAPI menulis lewat Firebase
 // Admin SDK yang otomatis BYPASS seluruh rules ini (service account punya akses penuh) — jadi
-// koleksi yang "hanya dibaca" oleh rules ini (sensor_readings, irrigation_events, crop_images)
-// tetap bisa ditulis backend seperti biasa, rules di bawah hanya menutup jalur tulis LANGSUNG
-// dari app mobile untuk data-data tersebut.
+// koleksi yang "hanya dibaca" oleh rules ini (sensor_readings, irrigation_events) tetap bisa
+// ditulis backend seperti biasa, rules di bawah hanya menutup jalur tulis LANGSUNG dari app
+// mobile untuk data-data tersebut. `crop_images` adalah PENGECUALIAN: client mobile JUGA boleh
+// `create` (fitur "Pindai Tanaman" on-demand kamera HP, lihat match block-nya di bawah) — bukan
+// hanya backend.
 // Referensi skema & kepemilikan: docs/data-contracts.md §3, docs/Architecture.md §5.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -47,9 +49,9 @@ service cloud.firestore {
         get(/databases/$(database)/documents/farms/$(resource.data.farm_id)).data.owner_uid == request.auth.uid;
     }
 
-    // sensor_readings/irrigation_events/crop_images — HANYA ditulis backend (Admin SDK, bypass
-    // rules ini). Client mobile cuma baca (dashboard petani, grafik historis di Detail Listing
-    // Pembeli untuk transparansi kualitas per data-contracts.md §3.4/3.5/3.6).
+    // sensor_readings/irrigation_events — HANYA ditulis backend (Admin SDK, bypass rules ini).
+    // Client mobile cuma baca (dashboard petani, grafik historis di Detail Listing Pembeli untuk
+    // transparansi kualitas per data-contracts.md §3.4/3.5).
     match /sensor_readings/{readingId} {
       allow read: if isSignedIn();
       allow write: if false;
@@ -58,9 +60,20 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if false;
     }
+
+    // crop_images/{imageId} — citra tanaman + skor AI (data-contracts.md §3.6). Ditulis backend
+    // (Admin SDK, siklus ESP32-CAM) DAN LANGSUNG oleh client mobile (fitur "Pindai Tanaman"
+    // on-demand kamera HP, `FirestoreRepository.createCropImage` — ESP32-CAM hardware saat ini
+    // rusak, jadi jalur mobile inilah yang benar-benar dipakai). `create` dibatasi hanya petani
+    // pemilik plot terkait, dibuktikan get() berjenjang plots/{plot_id} -> farms/{farm_id}.owner_uid
+    // (pola sama seperti aturan create `plots`/`listings`). Tidak bisa diubah/dihapus setelah dibuat.
     match /crop_images/{imageId} {
       allow read: if isSignedIn();
-      allow write: if false;
+      allow create: if isSignedIn() &&
+        get(/databases/$(database)/documents/farms/$(
+          get(/databases/$(database)/documents/plots/$(request.resource.data.plot_id)).data.farm_id
+        )).data.owner_uid == request.auth.uid;
+      allow update, delete: if false;
     }
 
     // listings/{listingId} — produk dijual (data-contracts.md §3.7). Dibaca siapa saja yang
