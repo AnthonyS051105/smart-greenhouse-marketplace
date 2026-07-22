@@ -41,10 +41,17 @@ service cloud.firestore {
     }
 
     // plots/{plotId} — petak tanam (data-contracts.md §3.3), kepemilikan ikut farm induk.
+    // `create` pakai getAfter() (bukan get()) karena FirestoreRepository.createFarmWithPlot
+    // menulis farms+plots dalam SATU firestore.batch() — get() hanya melihat snapshot data
+    // SEBELUM batch commit (jadi farms/{farm_id} yang baru dibuat di batch yang sama akan
+    // tampak belum ada, membuat seluruh batch ditolak PERMISSION_DENIED). getAfter() melihat
+    // state SETELAH seluruh write di batch/transaction yang sama diterapkan, jadi bisa
+    // memvalidasi dokumen farms yang dibuat berbarengan. Ditemukan saat testing registrasi
+    // ulang petani (Setup Greenhouse langkah 3 selalu gagal "PERMISSION_DENIED" di farms).
     match /plots/{plotId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() &&
-        get(/databases/$(database)/documents/farms/$(request.resource.data.farm_id)).data.owner_uid == request.auth.uid;
+        getAfter(/databases/$(database)/documents/farms/$(request.resource.data.farm_id)).data.owner_uid == request.auth.uid;
       allow update, delete: if isSignedIn() &&
         get(/databases/$(database)/documents/farms/$(resource.data.farm_id)).data.owner_uid == request.auth.uid;
     }
